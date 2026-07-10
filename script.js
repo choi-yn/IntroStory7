@@ -52,6 +52,7 @@
   const confettiContainer = document.getElementById('confetti');
   const storyApp = document.getElementById('story-app');
   const replayBtn = document.getElementById('btn-replay');
+  const audioKeeper = document.getElementById('aud-unlock');
 
   const audioMap = {
     'aud-0': document.getElementById('aud-0'),
@@ -71,6 +72,33 @@
   let confettiTimer = null;
   let pendingAudioKey = null;
   let activeAudioKey = null;
+  let audioSessionReady = false;
+
+  function startAudioKeeper() {
+    if (!audioKeeper || audioSessionReady) return Promise.resolve(audioSessionReady);
+    audioKeeper.loop = true;
+    audioKeeper.muted = true;
+    audioKeeper.volume = 0;
+    return audioKeeper.play().then(function () {
+      audioSessionReady = true;
+      audioUnlocked = true;
+      return true;
+    }).catch(function () {
+      return false;
+    });
+  }
+
+  function pauseAudioKeeper() {
+    if (!audioKeeper || audioKeeper.paused) return;
+    audioKeeper.pause();
+  }
+
+  function resumeAudioKeeper() {
+    if (!audioKeeper || !audioSessionReady) return;
+    audioKeeper.muted = true;
+    audioKeeper.volume = 0;
+    audioKeeper.play().catch(function () {});
+  }
 
   function primeAutoplay() {
     var loadAud0 = waitForCanPlay(ensureAudioSource('aud-0'));
@@ -79,7 +107,12 @@
     });
 
     return Promise.race([
-      loadAud0.then(function () {
+      Promise.all([
+        loadAud0,
+        audioKeeper ? waitForCanPlay(audioKeeper) : Promise.resolve(true)
+      ]).then(function () {
+        return startAudioKeeper();
+      }).then(function () {
         var probe = audioMap['aud-0'];
         if (!probe) return;
 
@@ -89,9 +122,11 @@
           probe.pause();
           probe.currentTime = 0;
           audioUnlocked = true;
+          audioSessionReady = true;
         }).catch(function () {}).then(function () {
           probe.muted = false;
           probe.volume = 1;
+          return startAudioKeeper();
         });
       }),
       delay(6000)
@@ -123,6 +158,10 @@
     currentAudio = null;
   }
 
+  function stopVoiceAudio() {
+    stopAllAudio();
+  }
+
   function waitForUnlock() {
     if (userInteracted) return Promise.resolve();
     return new Promise(function (resolve) {
@@ -136,11 +175,20 @@
     unlockWaiters.forEach(function (resolve) { resolve(); });
     unlockWaiters = [];
 
-    if (currentAudio && !currentAudio.ended) {
-      currentAudio.muted = false;
-      if (activeAudioKey) applyAudioVolume(currentAudio, activeAudioKey);
-      currentAudio.play().catch(function () {});
-    }
+    startAudioKeeper().then(function () {
+      if (pendingAudioKey) {
+        var key = pendingAudioKey;
+        pendingAudioKey = null;
+        playAudio(key).catch(function () {});
+        return;
+      }
+
+      if (currentAudio && !currentAudio.ended) {
+        currentAudio.muted = false;
+        if (activeAudioKey) applyAudioVolume(currentAudio, activeAudioKey);
+        currentAudio.play().catch(function () {});
+      }
+    });
   }
 
   function waitForCanPlay(el) {
@@ -253,27 +301,30 @@
     ]);
   }
 
-  async function startAudioPlayback(el, audioKey) {
-    el.muted = true;
-    el.volume = 0;
+  function startAudioPlayback(el, audioKey) {
+    return startAudioKeeper().then(function () {
+      pauseAudioKeeper();
+      el.muted = true;
+      el.volume = 0;
 
-    try {
-      await playWithTimeout(el, 4000);
-    } catch (err) {
-      el.muted = false;
-      if (err && err.name === 'NotAllowedError') {
-        pendingAudioKey = audioKey;
+      return playWithTimeout(el, 4000).then(function () {
+        el.muted = false;
+        applyAudioVolume(el, audioKey);
+        audioUnlocked = true;
+        audioSessionReady = true;
+        pendingAudioKey = null;
+        return true;
+      }).catch(function (err) {
+        el.muted = false;
+        resumeAudioKeeper();
+        if (err && err.name === 'NotAllowedError') {
+          pendingAudioKey = audioKey;
+          return false;
+        }
+        console.warn('play 실패:', audioKey, err);
         return false;
-      }
-      console.warn('play 실패:', audioKey, err);
-      return false;
-    }
-
-    el.muted = false;
-    applyAudioVolume(el, audioKey);
-    audioUnlocked = true;
-    pendingAudioKey = null;
-    return true;
+      });
+    });
   }
 
   function waitForAudioEnd(el, audioKey) {
@@ -306,7 +357,7 @@
   }
 
   async function playAudioElement(el, audioKey) {
-    stopAllAudio();
+    stopVoiceAudio();
     ensureAudioSource(audioKey);
     currentAudio = el;
     el.currentTime = 0;
@@ -316,12 +367,17 @@
       ensureAudioSource(audioKey);
       ready = await waitForCanPlay(el);
     }
-    if (!ready) return false;
+    if (!ready) {
+      resumeAudioKeeper();
+      return false;
+    }
 
     var started = await startAudioPlayback(el, audioKey);
     if (!started) return false;
 
-    return await waitForAudioEnd(el, audioKey);
+    var ended = await waitForAudioEnd(el, audioKey);
+    resumeAudioKeeper();
+    return ended;
   }
 
   async function playAudio(audioKey) {
@@ -439,7 +495,8 @@
   async function runActivitiesScene(stepIndex) {
     showScene('activities');
     updateProgress(stepIndex);
-    stopAllAudio();
+    stopVoiceAudio();
+    resumeAudioKeeper();
 
     var layers = [activityLayerA, activityLayerB];
     var activeIndex = 0;
@@ -522,7 +579,8 @@
   }
 
   function resetStoryState() {
-    stopAllAudio();
+    stopVoiceAudio();
+    resumeAudioKeeper();
 
     if (confettiTimer) {
       clearInterval(confettiTimer);
@@ -711,9 +769,13 @@
       console.warn('자동 재생 준비 실패:', err);
     }
     document.addEventListener('visibilitychange', function () {
-      if (document.hidden) stopAllAudio();
-      else if (isPlaying && currentAudio && !currentAudio.ended) {
-        currentAudio.play().catch(function () {});
+      if (document.hidden) {
+        stopVoiceAudio();
+      } else {
+        resumeAudioKeeper();
+        if (isPlaying && currentAudio && !currentAudio.ended) {
+          currentAudio.play().catch(function () {});
+        }
       }
     });
     isPlaying = true;
