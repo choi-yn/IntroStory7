@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>영양놀이 오프닝 스토리</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="story-app" class="story-app">
+
+    <!-- 교실 배경 -->
+    <div class="bg-decor classroom-bg" aria-hidden="true">
+      <div class="classroom-frame">
+        <img class="classroom-bg-img" src="image/classroom_bg.png" alt="">
+      </div>
+    </div>
+
+    <!-- 씬 컨테이너 -->
+    <main id="scene-container" class="scene-container">
+
+      <!-- 1. 도입 + 캐릭터 등장 -->
+      <section class="scene scene-intro active" data-scene="intro">
+        <div class="scene-bg intro-bg"></div>
+        <div class="scene-content">
+          <div class="cast-scaler">
+          <div class="cast-stage">
+
+            <!-- 고민유아 -->
+            <div class="cast-member cast-child visible" data-cast="child">
+              <div class="q-mark-float" aria-hidden="true">
+                <img src="image/물음표.png" alt="" class="q-mark-img">
+              </div>
+              <img src="image/고민유아.png" alt="고민하는 유아" class="cast-img child-img">
+            </div>
+
+            <!-- 휠체어고민유아 (고민유아 오른쪽) -->
+            <div class="cast-member cast-wheelchair visible" data-cast="wheelchair">
+              <div class="q-mark-float" aria-hidden="true">
+                <img src="image/물음표.png" alt="" class="q-mark-img">
+              </div>
+              <img src="image/휠체어고민유아.png" alt="고민하는 휠체어 유아" class="cast-img child-img">
+            </div>
+
+            <!-- 헬씨 (고민유아 왼쪽) -->
+            <div class="cast-member cast-healthy" data-cast="healthy">
+              <img src="image/헬씨.png" alt="헬씨" class="cast-img">
+            </div>
+
+            <!-- 에티 (고민유아와 휠체어고민유아 사이) -->
+            <div class="cast-member cast-eti" data-cast="eti">
+              <img src="image/에티.png" alt="에티" class="cast-img">
+            </div>
+
+            <!-- 세이피 (휠체어고민유아 오른쪽) -->
+            <div class="cast-member cast-safy" data-cast="safy">
+              <img src="image/세이피.png" alt="세이피" class="cast-img">
+            </div>
+
+          </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. 앱 주요 화면 (활동1~7 교차 편집) -->
+      <section class="scene scene-activities" data-scene="activities">
+        <div class="scene-bg activities-bg"></div>
+        <div class="scene-content">
+          <div class="activities-scaler">
+          <div class="activity-frame">
+            <img id="activity-layer-a" class="activity-layer visible" src="image/활동1.jpg" alt="앱 활동 화면">
+            <img id="activity-layer-b" class="activity-layer" src="" alt="">
+          </div>
+          <div class="activity-dots">
+            <span class="dot active" data-index="0"></span>
+            <span class="dot" data-index="1"></span>
+            <span class="dot" data-index="2"></span>
+            <span class="dot" data-index="3"></span>
+            <span class="dot" data-index="4"></span>
+            <span class="dot" data-index="5"></span>
+            <span class="dot" data-index="6"></span>
+          </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. 엔딩 -->
+      <section class="scene scene-ending" data-scene="ending">
+        <div class="scene-bg ending-bg"></div>
+        <div class="scene-content">
+          <div class="ending-scaler">
+          <div class="ending-stage">
+          <div class="ending-group">
+            <div class="ending-member">
+              <img src="image/헬씨.png" alt="헬씨" class="character-img ending-char healthy-end">
+            </div>
+            <div class="ending-member">
+              <img src="image/신난유아.png" alt="신난 유아" class="character-img ending-char child-end">
+            </div>
+            <div class="ending-member">
+              <img src="image/에티.png" alt="에티" class="character-img ending-char eti-end">
+            </div>
+            <div class="ending-member">
+              <img src="image/휠체어신난유아.png" alt="신난 휠체어 유아" class="character-img ending-char wheelchair-end">
+            </div>
+            <div class="ending-member">
+              <img src="image/세이피.png" alt="세이피" class="character-img ending-char safy-end">
+            </div>
+          </div>
+          </div>
+          </div>
+          <div class="confetti-container" id="confetti"></div>
+          <button type="button" id="btn-replay" class="btn-replay" hidden aria-label="다시 보기">
+            <span class="btn-replay-label">다시 보기</span>
+          </button>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- 하단 타이틀 -->
+    <footer class="story-footer">
+      <p class="app-title">UDL 기반 디지털솔루션을 통한 통합학급 영양놀이</p>
+    </footer>
+
+    <!-- 진행 표시 -->
+    <div class="progress-bar">
+      <div id="progress-fill" class="progress-fill"></div>
+    </div>
+
+  </div>
+
+  <!-- 오디오 (HTML 태그로 미리 로드) -->
+  <audio id="aud-0" preload="auto" playsinline src="sound/audio_0.mp3"></audio>
+  <audio id="aud-1" preload="auto" playsinline src="sound/audio_1_놀면서 배우는 올바른 영양 습관, 우리 함께 해요.mp3"></audio>
+  <audio id="aud-2" preload="auto" playsinline src="sound/audio_2_안녕, 난 헬씨야, 몸을 튼튼하게 만드는 영양소 친구들을 만나볼까.mp3"></audio>
+  <audio id="aud-3" preload="auto" playsinline src="sound/audio_3_eti.mp3"></audio>
+  <audio id="aud-4" preload="auto" playsinline src="sound/audio_4_안녕, 난 세이피! 깨끗한 손과 안전한 식습관은 기본이지!.mp3"></audio>
+
+  <script src="script.js"></script>
+</body>
+</html>
